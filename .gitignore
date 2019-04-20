@@ -1,3 +1,46 @@
+# AndroidStudio
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+.idea/runConfigurations.xml
+.idea/dictionaries/Denis.xml
+.idea/codeStyles/codeStyleConfig.xml
+.idea/codeStyles/Project.xml
+.idea/misc.xml
+.idea/gradle.xml
+.idea/encodings.xml
+gradlew.bat
+gradle.properties
+gradlew
+gradle/wrapper/gradle-wrapper.properties
+gradle/wrapper/gradle-wrapper.jar
+.idea/vcs.xml
+
+# Build-Files
+/build
+/.build
+
+# Binaries
+/bin
+/.bin
+
+# Visual Studio
+/.vs
+
+# Visual Studio Code (VSCode)
+/.vscode
+
 # Prerequisites
 *.d
 
