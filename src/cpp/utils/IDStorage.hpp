@@ -31,8 +31,8 @@
 * POSSIBILITY OF SUCH DAMAGE.
 **/
 
-#ifndef MECS_COMPONENTS_MANAGER_HPP
-#define MECS_COMPONENTS_MANAGER_HPP
+#ifndef MECS_IDSTORAGE_HPP
+#define MECS_IDSTORAGE_HPP
 
 // -----------------------------------------------------------
 
@@ -46,27 +46,30 @@
 #endif // !MECS_TYPES_HPP
 
 // ===========================================================
-// FORWARD-DECLARATIONS
-// ===========================================================
-
-// ===========================================================
 // TYPES
 // ===========================================================
 
 namespace mecs
 {
 	
+	// -----------------------------------------------------------
+	
+	// ===========================================================
+	// mecs::IDStorage
+	// ===========================================================
+	
 	/**
-	 * ComponentsManager - stores cached Components, allowing to pre-allocate
-	 * & reuse, to avoid fragmentation of memory & aligned objects collections.
-	 * 
-	 * @authors Denis Z. (code4un@yandex.ru)
-	 * @version 1.0
+	 * IDStorage - template storage utility-class (pool) for IDs (numeric values).
+	 * Useful to replace same code, when generation of the unique IDs required (Entities, Meshes, etc).
+	 *
+	 * @version 1.0.0
 	 * @since 21.03.2019
-	**/
-	class ComponentsManager final
+	 * @authors Denis Z. (code4un@yandex.ru)
+	*/
+	template <typename IDType>
+	class IDStorage final
 	{
-		
+	
 	private:
 		
 		// -----------------------------------------------------------
@@ -74,136 +77,154 @@ namespace mecs
 		// ===========================================================
 		// CONFIGS
 		// ===========================================================
-		
-		/** Component pointer. **/
-		using component_ptr = mecs_shared<Component>;
-		
-		/** Components container. **/
-		using components_vector = mecs_vector<component_ptr>;
-		
-		/** Components map. **/
-		using components_map = mecs_map<const TypeID, components_vector>;
-		
-		// ===========================================================
-		// CONSTANTS
-		// ===========================================================
+	
+		/** Type-alias for IDs map. **/
+		using ids_map = mecs_map<const IDType, bool>;
 		
 		// ===========================================================
 		// FIELDS
 		// ===========================================================
 		
+		/** IDs map. **/
+		ids_map mIDs;
+		
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
 		/** Mutex **/
-		mecs_mutex mComponentsMutex;
+		mecs_mutex mMutex;
 #endif // MULTI-THREADING
-		
-		/** ComponentsManager instance. **/
-		static ComponentsManager * mInstance;
-		
-		/** Components map. **/
-		components_map mComponents;
-		
-		// ===========================================================
-		// CONSTRUCTOR
-		// ===========================================================
-		
-		/**
-		 * ComponentsManager constructor.
-		 * 
-		 * @throws - no exceptions.
-		**/
-		explicit ComponentsManager( ) noexcept;
 		
 		// ===========================================================
 		// DELETED
 		// ===========================================================
 		
-		explicit ComponentsManager( const ComponentsManager & ) noexcept = delete;
-		ComponentsManager & operator=( const ComponentsManager & ) noexcept = delete;
-		explicit ComponentsManager( ComponentsManager && ) noexcept = delete;
-		ComponentsManager & operator=( ComponentsManager && ) noexcept = delete;
+		/* @deleted IDStorage const copy constructor */
+		IDStorage( const IDStorage & ) = delete;
+
+		/* @deleted IDStorage const copy assignment operator */
+		IDStorage & operator=( const IDStorage & ) = delete;
+
+		/* @deleted IDStorage move constructor */
+		IDStorage( IDStorage && ) = delete;
+
+		/* @deleted IDStorage move assignment operator */
+		IDStorage & operator=( IDStorage && ) = delete;
 		
 		// -----------------------------------------------------------
 		
 	public:
-	
+		
 		// -----------------------------------------------------------
+		
+		// ===========================================================
+		// CONSTRUCTOR
+		// ===========================================================
+		
+		/* IDStorage constructor */
+		explicit IDStorage( ) noexcept
+			: mIDs( ), mMutex( )
+		{
+		}
 		
 		// ===========================================================
 		// DESTRUCTOR
 		// ===========================================================
 		
-		/**
-		 * ComponentsManager destructor.
-		 * 
-		 * @throws - no exceptions.
-		**/ 
-		~ComponentsManager( ) noexcept;
+		/* IDStorage destructor */
+		~IDStorage( ) noexcept = default;
 		
 		// ===========================================================
 		// METHODS
 		// ===========================================================
 		
-		/**
-		 * Initialize ComponentsManager.
-		 * 
-		 * @thread_safety - not thread-safe.
-		 * @throws - no exceptions.
-		**/
-		static void Initialize( ) noexcept;
-		
-		/**
-		 * Terminate ComponentsManager.
-		 * 
-		 * @thread_safety - not thread-safe.
-		 * @throws - no exceptions.
-		**/ 
-		static void Terminate( ) noexcept;
-		
-		/**
-		 * Search for a Component of Type-ID.
-		 * 
+		/*
+		 * Generates (or search available) ID.
+		 *
 		 * @thread_safety - thread-lock (synchronization) used.
-		 * @param pTypeID - Component Type-ID.
-		 * @return - Component, or null.
-		 * @throws - no exceptions.
-		**/ 
-		static component_ptr getComponent( const TypeID & pTypeID ) noexcept;
-		
-		/**
-		 * Add Component to cache.
-		 * 
+		 * @return - ID.
+		 * @throws - can throw exception:
+		 * - bad_alloc ;
+		 * - IDs limit reached ;
+		 * - mutex-exception ;
+		*/
+		IDType generateID( ) noexcept
+		{
+			
+			// Lock
+			mecs_ulock lock_( mMutex );
+
+			// IDs map end
+			auto idsMapEnd( mIDs.cend( ) );
+
+			// IDs map iterator
+			auto idsIterator( mIDs.begin( ) );
+
+			// Search available ID
+			while ( idsIterator != idsMapEnd )
+			{
+
+				// Compare
+				if ( !idsIterator->second )
+				{// Available ID found
+				
+					// Reserve ID
+					idsIterator->second = true;
+
+					// Return ID
+					return( idsIterator->first );
+
+				}
+
+				// Next
+				idsIterator++;
+
+			}
+
+			// Create new ID
+			const IDType newID( mIDs.size( ) );
+
+			// Register ID
+			mIDs.insert( std::pair<const IDType, bool>( newID, true ) );
+
+			// Return ID
+			return( newID ); // Copy
+
+		}
+
+		/*
+		 * Returns IDs to pool.
+		 *
 		 * @thread_safety - thread-lock (synchronization) used.
-		 * @param pTypeID - Component Type-ID.
-		 * @param pComponent - Component.
-		 * @throws - no exceptions.
-		**/
-		static void addComponent( const TypeID & pTypeID, component_ptr & pComponent ) noexcept;
-		
-		/**
-		 * Remove all Components with the specific Type-ID.
-		 * 
-		 * @thread_safety - thread-lock (synchronization) used.
-		 * @param pTypeID - Component Type-ID.
-		 * @throws - no exceptions.
-		**/ 
-		static void clear( const TypeID & pTypeID ) noexcept;
+		 * @param pID - ID.
+		 * @throws - can throw exception:
+		 * - bad_alloc ;
+		 * - mutex-exception ;
+		*/
+		void returnID( const IDType & pID ) noexcept
+		{
+
+			// Lock
+			mecs_ulock lock_( mMutex );
+
+			// Mark ID as available
+			mIDs[pID] = false;
+
+		}
 		
 		// -----------------------------------------------------------
 		
-	}; // mecs::ComponentsManager
+	}; // mecs::IDStorage
+	
+	// -----------------------------------------------------------
 	
 } // mecs
 
 // ===========================================================
-// CONFIG
+// CONFIGS
 // ===========================================================
 
-#ifndef MECS_COMPONENTS_MANAGER_DECL
-#define MECS_COMPONENTS_MANAGER_DECL
-using mecs_ComponentsManager = mecs::ComponentsManager;
-#endif // !MECS_COMPONENTS_MANAGER_DECL
+template <typename IDType>
+using mecs_IDStorage = mecs::IDStorage<IDType>;
 
 // -----------------------------------------------------------
 
-#endif // !MECS_COMPONENTS_MANAGER_HPP
+#endif // !MECS_IDSTORAGE_HPP

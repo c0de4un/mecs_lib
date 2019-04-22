@@ -48,6 +48,27 @@ else ( NOT DEFINED MECS_LIB_HEADERS AND NOT DEFINED MECS_LIB_SOURCES )
 	message ( STATUS "${ROOT_PROJECT_NAME} - headers & sources are exported to <MECS_LIB_HEADERS> & <MECS_LIB_SOURCES> relatively." )
 endif ( NOT DEFINED MECS_LIB_HEADERS AND NOT DEFINED MECS_LIB_SOURCES )
 
+# Multi-threading
+if ( NOT DEFINED MECS_LIB_MT_ENABLED )
+	# INFO
+	message ( STATUS "${ROOT_PROJECT_NAME} - set <MECS_LIB_MT_ENABLED> <ON> or <OFF>, and add definition <MECS_LIB_MT_ENABLED=1> to source-code, to enable/disable multi-threading/thread-safety support." )
+	
+	# Enable by default.
+	set ( MECS_LIB_MT_ENABLED ON )
+	
+	# Add Definition.
+	add_definitions ( -DMECS_LIB_MT_ENABLED )
+else ( NOT DEFINED MECS_LIB_MT_ENABLED )
+	# MT
+	if ( MECS_LIB_MT_ENABLED )
+		# INFO
+		message ( STATUS "${ROOT_PROJECT_NAME} - multi-threading (thread-safety) support enabled." )
+	else ( MECS_LIB_MT_ENABLED )
+		# INFO
+		message ( STATUS "${ROOT_PROJECT_NAME} - multi-threading (thread-safety) support disabled." )
+	endif ( MECS_LIB_MT_ENABLED )
+endif ( NOT DEFINED MECS_LIB_MT_ENABLED )
+
 # =================================================================================
 # CONSTANTS
 # =================================================================================
@@ -62,9 +83,10 @@ set ( MECS_LIB_SRC_DIR "${CMAKE_SOURCE_DIR}/src/cpp" )
 # Local-Project Headers
 set ( MECS_LIB_HEADERS ${MECS_LIB_HEADERS}
 	# CORE
-	"${MECS_LIB_SRC_DIR}/ecs_fwd.hpp"
 	"${MECS_LIB_SRC_DIR}/ecs.hpp"
 	"${MECS_LIB_SRC_DIR}/cfg/ecs_types.hpp"
+	"${MECS_LIB_SRC_DIR}/utils/IDStorage.hpp"
+	"${MECS_LIB_SRC_DIR}/utils/IDMap.hpp"
 	# COMPONENTS
 	"${MECS_LIB_SRC_DIR}/components/Component.hpp"
 	"${MECS_LIB_SRC_DIR}/components/ComponentsManager.hpp"
@@ -75,6 +97,7 @@ set ( MECS_LIB_HEADERS ${MECS_LIB_HEADERS}
 	"${MECS_LIB_SRC_DIR}/systems/System.hpp"
 	"${MECS_LIB_SRC_DIR}/systems/SystemsManager.hpp"
 	# EVENTS
+	"${MECS_LIB_SRC_DIR}/events/IEventListener.hxx"
 	"${MECS_LIB_SRC_DIR}/events/Event.hpp"
 	"${MECS_LIB_SRC_DIR}/events/EventsManager.hpp" )
 
@@ -87,12 +110,16 @@ set ( MECS_LIB_SOURCES ${MECS_LIB_SOURCES}
 	# CORE
 	"${MECS_LIB_SRC_DIR}/ecs.cpp"
 	# COMPONENTS
+	"${MECS_LIB_SRC_DIR}/components/Component.cpp"
 	"${MECS_LIB_SRC_DIR}/components/ComponentsManager.cpp"
 	# ENTITIES
+	"${MECS_LIB_SRC_DIR}/entities/Entity.cpp"
 	"${MECS_LIB_SRC_DIR}/entities/EntitiesManager.cpp"
 	# SYSTEMS
+	"${MECS_LIB_SRC_DIR}/systems/System.cpp"
 	"${MECS_LIB_SRC_DIR}/systems/SystemsManager.cpp"
 	# EVENTS
+	"${MECS_LIB_SRC_DIR}/events/Event.cpp"
 	"${MECS_LIB_SRC_DIR}/events/EventsManager.cpp" )
 
 # =================================================================================

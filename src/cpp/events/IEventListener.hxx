@@ -1,5 +1,5 @@
 /**
-* Copyright Â© 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
+* Copyright © 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
 * Authors: Denis Zyamaev (code4un@yandex.ru)
 * All rights reserved.
 * Language: C++
@@ -31,98 +31,89 @@
 * POSSIBILITY OF SUCH DAMAGE.
 **/
 
+#ifndef MECS_I_EVENT_LISTENER_HPP
+#define MECS_I_EVENT_LISTENER_HPP
+
 // -----------------------------------------------------------
 
 // ===========================================================
 // INCLUDES
 // ===========================================================
 
-// HEADER
-#ifndef MECS_ECS_HPP
-#include "ecs.hpp"
-#endif // !MECS_ECS_HPP
-
-// Include mecs::ComponentsManager
-#ifndef MECS_COMPONENTS_MANAGER_HPP
-#include "components/ComponentsManager.hpp"
-#endif // !MECS_COMPONENTS_MANAGER_HPP
-
-// Include mecs::EntitiesManager
-#ifndef MECS_ENTITiES_MANAGER_HPP
-#include "entities/EntitiesManager.hpp"
-#endif // !MECS_ENTITiES_MANAGER_HPP
-
-// Include mecs::SystemsManager
-#ifndef MECS_SYSTEMS_MANAGER_HPP
-#include "systems/SystemsManager.hpp"
-#endif // !MECS_SYSTEMS_MANAGER_HPP
-
-// Include mecs::EventsManager
-#ifndef MECS_EVENTS_MANAGER_HPP
-#include "events/EventsManager.hpp"
-#endif // !MECS_EVENTS_MANAGER_HPP
+// Include ecs_types.hpp
+#ifndef MECS_TYPES_HPP
+#include "../cfg/ecs_types.hpp"
+#endif // !MECS_TYPES_HPP
 
 // ===========================================================
-// IMPLEMENTATION
+// TYPES
 // ===========================================================
 
 namespace mecs
 {
-	
+
 	// -----------------------------------------------------------
-	
+
 	// ===========================================================
-	// METHODS
+	// mecs::IEventListener
 	// ===========================================================
-	
+
 	/**
-	 * Initialize.
-	 * 
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/ 
-	void ECSEngine::Initialize( ) noexcept
+	 * IEventListener - interface to catch (handle) Events.
+	 *
+	 * @authors Denis Z. (code4un@yandex.ru)
+	 * @version 1.0
+	 * @since 21.03.2019
+	**/
+	class IEventListener
 	{
-		
-		// Initialize ComponentsManager
-		ComponentsManager::Initialize( );
-		
-		// Initialize EntitiesManager
-		EntitiesManager::Initialize( );
 
-		// Initialize SystemsManager
-		SystemsManager::Initialize( );
+	public:
 
-		// Initialize EventsManager
-		EventsManager::Initialize( );
+		// -----------------------------------------------------------
 
-	}
-	
-	/**
-	 * Terminate.
-	 * 
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/ 
-	void ECSEngine::Terminate( ) noexcept
-	{
-		
-		// Terminate ComponentsManager
-		ComponentsManager::Terminate( );
-		
-		// Terminate EntitiesManager
-		EntitiesManager::Terminate( );
+		// ===========================================================
+		// DESTRUCTOR
+		// ===========================================================
 
-		// Terminate SystemsManager
-		SystemsManager::Terminate( );
+		/**
+		 * IEventListener destructor.
+		 * 
+		 * @throws - no exceptions.
+		**/
+		virtual ~IEventListener( ) noexcept = default;
 
-		// Terminate EventsManager
-		EventsManager::Terminate( );
+		// ===========================================================
+		// METHODS
+		// ===========================================================
 
-	}
-	
+		/**
+		 * Called when Event raised.
+		 * 
+		 * @thread_safety - not required, async-queue used.
+		 * @param pEvent - Event.
+		 * @return - 'true' if handled.
+		 * @throws - no exceptions.
+		**/
+		virtual bool onEvent( mecs_shared<Event> & pEvent ) noexcept = 0;
+
+		// -----------------------------------------------------------
+
+	}; // mecs::IEventListener
+
 	// -----------------------------------------------------------
-	
+
 } // mecs
 
+// ===========================================================
+// CONFIGS
+// ===========================================================
+
+#ifndef MECS_I_EVENT_LISTENER_DECL
+#define MECS_I_EVENT_LISTENER_DECL
+using mecs_IEventListener = mecs::IEventListener;
+#endif // !MECS_I_EVENT_LISTENER_DECL
+
 // -----------------------------------------------------------
+
+#endif // !MECS_I_EVENT_LISTENER_HPP

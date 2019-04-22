@@ -1,5 +1,5 @@
 /**
-* Copyright Â© 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
+* Copyright © 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
 * Authors: Denis Zyamaev (code4un@yandex.ru)
 * All rights reserved.
 * Language: C++
@@ -31,8 +31,8 @@
 * POSSIBILITY OF SUCH DAMAGE.
 **/
 
-#ifndef MECS_COMPONENTS_MANAGER_HPP
-#define MECS_COMPONENTS_MANAGER_HPP
+#ifndef MECS_ID_MAP_HPP
+#define MECS_ID_MAP_HPP
 
 // -----------------------------------------------------------
 
@@ -46,164 +46,200 @@
 #endif // !MECS_TYPES_HPP
 
 // ===========================================================
-// FORWARD-DECLARATIONS
-// ===========================================================
-
-// ===========================================================
 // TYPES
 // ===========================================================
 
 namespace mecs
 {
-	
+
 	/**
-	 * ComponentsManager - stores cached Components, allowing to pre-allocate
-	 * & reuse, to avoid fragmentation of memory & aligned objects collections.
+	 * IDMap - utility-class to store IDs (values), sorted by type.
 	 * 
-	 * @authors Denis Z. (code4un@yandex.ru)
-	 * @version 1.0
+	 * @version 1.0.0
 	 * @since 21.03.2019
+	 * @authors Denis Z. (code4un@yandex.ru)
 	**/
-	class ComponentsManager final
+	template <typename T, typename ID_t>
+	class IDMap final
 	{
-		
+
 	private:
-		
+
 		// -----------------------------------------------------------
-		
+
 		// ===========================================================
 		// CONFIGS
 		// ===========================================================
-		
-		/** Component pointer. **/
-		using component_ptr = mecs_shared<Component>;
-		
-		/** Components container. **/
-		using components_vector = mecs_vector<component_ptr>;
-		
-		/** Components map. **/
-		using components_map = mecs_map<const TypeID, components_vector>;
-		
-		// ===========================================================
-		// CONSTANTS
-		// ===========================================================
-		
+
+		/** Type-alias for IDs map. **/
+		using ids_map_t = mecs_map<ID_t, bool>;
+
+		/** Type-alias for IDs maps. **/
+		using ids_maps_t = mecs_map<T, ids_map_t>;
+
 		// ===========================================================
 		// FIELDS
 		// ===========================================================
-		
+
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
 		/** Mutex **/
-		mecs_mutex mComponentsMutex;
+		mecs_mutex mMutex;
 #endif // MULTI-THREADING
-		
-		/** ComponentsManager instance. **/
-		static ComponentsManager * mInstance;
-		
-		/** Components map. **/
-		components_map mComponents;
-		
-		// ===========================================================
-		// CONSTRUCTOR
-		// ===========================================================
-		
-		/**
-		 * ComponentsManager constructor.
-		 * 
-		 * @throws - no exceptions.
-		**/
-		explicit ComponentsManager( ) noexcept;
-		
+
+		/** IDs. **/
+		ids_maps_t mIDs;
+
 		// ===========================================================
 		// DELETED
 		// ===========================================================
-		
-		explicit ComponentsManager( const ComponentsManager & ) noexcept = delete;
-		ComponentsManager & operator=( const ComponentsManager & ) noexcept = delete;
-		explicit ComponentsManager( ComponentsManager && ) noexcept = delete;
-		ComponentsManager & operator=( ComponentsManager && ) noexcept = delete;
-		
+
+		/* @deleted IDMap const copy constructor */
+		IDMap( const IDMap & ) = delete;
+
+		/* @deleted IDMap const copy assignment operator */
+		IDMap & operator=( const IDMap & ) = delete;
+
+		/* @deleted IDMap move constructor */
+		IDMap( IDMap && ) = delete;
+
+		/* @deleted IDMap move assignment operator */
+		IDMap & operator=( IDMap && ) = delete;
+
 		// -----------------------------------------------------------
-		
+
 	public:
-	
+
 		// -----------------------------------------------------------
-		
+
+		// ===========================================================
+		// CONSTRUCTOR
+		// ===========================================================
+
+		/**
+		 * IDMap constructor.
+		 *
+		 * @throws - no exceptions.
+		**/
+		explicit IDMap( ) noexcept
+#ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
+			: mMutex( ), mIDs( )
+#else // ONE-THREAD
+			: mIDs( )
+#endif // MULTI-THREADING
+		{
+		}
+
 		// ===========================================================
 		// DESTRUCTOR
 		// ===========================================================
-		
+
 		/**
-		 * ComponentsManager destructor.
-		 * 
+		 * IDMap destructor.
+		 *
 		 * @throws - no exceptions.
-		**/ 
-		~ComponentsManager( ) noexcept;
-		
+		**/
+		~IDMap( ) noexcept = default;
+
 		// ===========================================================
 		// METHODS
 		// ===========================================================
-		
+
 		/**
-		 * Initialize ComponentsManager.
+		 * Search available ID of the given Type-ID.
 		 * 
-		 * @thread_safety - not thread-safe.
+		 * (!) ID must be returned, when not required.
+		 * 
+		 * @thread_safety - thread-lock used.
+		 * @param pTypeID - Type-ID.
+		 * @return - ID.
 		 * @throws - no exceptions.
 		**/
-		static void Initialize( ) noexcept;
-		
+		const ID_t generateID( const T & pTypeID ) noexcept
+		{
+
+#ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
+			// Lock
+			mecs_ulock lock_( mMutex );
+#endif // MULTI-THREADING
+
+			// Get IDs map.
+			ids_map_t & idsMap_lr = mIDs[pTypeID];
+
+			// IDs map iterator.
+			auto idsIter_ = idsMap_lr.begin( );
+
+			// IDs map end-iterator.
+			auto idsMapEndIter_ = idsMap_lr.cend( );
+
+			// Search ID
+			while ( idsIter_ != idsMapEndIter_ )
+			{
+
+				//Check ID status.
+				if ( idsIter_->second == false )
+				{
+
+					// Copy ID-value
+					const ID_t id_( idsIter_->first ); // Copy
+
+					// Reserve ID
+					idsIter_->second = true;
+
+					// Return ID
+					return( id_ ); // Copy
+
+				}
+
+				// Next ID
+				idsIter_++;
+
+			}
+
+			// Create new ID
+			const ID_t id_( (ID_t) idsMap_lr.size( ) );
+
+			// Add ID
+			idsMap_lr[id_] = true;
+
+			// Return ID
+			return( id_ ); // Copy
+
+		}
+
 		/**
-		 * Terminate ComponentsManager.
+		 * Returns ID for reuse.
 		 * 
-		 * @thread_safety - not thread-safe.
-		 * @throws - no exceptions.
-		**/ 
-		static void Terminate( ) noexcept;
-		
-		/**
-		 * Search for a Component of Type-ID.
-		 * 
-		 * @thread_safety - thread-lock (synchronization) used.
-		 * @param pTypeID - Component Type-ID.
-		 * @return - Component, or null.
-		 * @throws - no exceptions.
-		**/ 
-		static component_ptr getComponent( const TypeID & pTypeID ) noexcept;
-		
-		/**
-		 * Add Component to cache.
-		 * 
-		 * @thread_safety - thread-lock (synchronization) used.
-		 * @param pTypeID - Component Type-ID.
-		 * @param pComponent - Component.
+		 * @thread_safety - thread-lock used.
+		 * @param pTypeID - Type-ID.
+		 * @@param pID - ID.
 		 * @throws - no exceptions.
 		**/
-		static void addComponent( const TypeID & pTypeID, component_ptr & pComponent ) noexcept;
-		
-		/**
-		 * Remove all Components with the specific Type-ID.
-		 * 
-		 * @thread_safety - thread-lock (synchronization) used.
-		 * @param pTypeID - Component Type-ID.
-		 * @throws - no exceptions.
-		**/ 
-		static void clear( const TypeID & pTypeID ) noexcept;
-		
+		void returnID( const T & pTypeID, const ID_t & pID ) noexcept
+		{
+
+#ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
+			// Lock
+			mecs_ulock lock_( mMutex );
+#endif // MULTI-THREADING
+
+			// Get IDs map.
+			ids_map_t & idsMap_lr = mIDs[pTypeID];
+
+			// Reset ID
+			idsMap_lr[pID] = false;
+
+		}
+
 		// -----------------------------------------------------------
-		
-	}; // mecs::ComponentsManager
-	
+
+	}; // mecs::IDMap
+
 } // mecs
 
 // ===========================================================
 // CONFIG
 // ===========================================================
 
-#ifndef MECS_COMPONENTS_MANAGER_DECL
-#define MECS_COMPONENTS_MANAGER_DECL
-using mecs_ComponentsManager = mecs::ComponentsManager;
-#endif // !MECS_COMPONENTS_MANAGER_DECL
-
 // -----------------------------------------------------------
 
-#endif // !MECS_COMPONENTS_MANAGER_HPP
+#endif // !MECS_ID_MAP_HPP

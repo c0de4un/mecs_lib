@@ -40,8 +40,14 @@ int main( )
 	// Print Hello World !
 	std::cout << "Hello World !" << std::endl;
 	
+	// Initialize mecs
+	mecs::ECSEngine::Initialize( );
+	
 	// Wait input.
 	std::cin.get( );
+	
+	// Terminate mecs
+	mecs::ECSEngine::Terminate( );
 	
 	// Return OK
 	return( 0 );

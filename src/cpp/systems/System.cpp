@@ -38,17 +38,17 @@
 // ===========================================================
 
 // HEADER
-#ifndef MECS_SYSTEMS_MANAGER_HPP
-#include "SystemsManager.hpp"
-#endif // !MECS_SYSTEMS_MANAGER_HPP
-
-// Include mecs::System
 #ifndef MECS_SYSTEM_HPP
 #include "System.hpp"
 #endif // !MECS_SYSTEM_HPP
 
+// Include mecs::Component
+#ifndef MECS_COMPONENT_HPP
+#include "../components/Component.hpp"
+#endif // !MECS_COMPONENT_HPP
+
 // ===========================================================
-// mecs::SystemsManager
+// mecs::System
 // ===========================================================
 
 namespace mecs
@@ -57,27 +57,23 @@ namespace mecs
 	// -----------------------------------------------------------
 
 	// ===========================================================
-	// FIELDS
-	// ===========================================================
-
-	/** SystemsManager instance. **/
-	SystemsManager * SystemsManager::mInstance( nullptr );
-
-	// ===========================================================
 	// CONSTRUCTOR
 	// ===========================================================
 
 	/**
-	 * SystemsManager constructor.
+	 * System constructor.
 	 *
+	 * @param pTypeID - System Type-ID.
 	 * @throws - no exceptions.
 	**/
-	SystemsManager::SystemsManager( ) noexcept
+	System::System( const TypeID & pTypeID ) noexcept
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
-		: mMutex( ), mSystems( )
+		: mMutex( ),
+		mEnabled( false ),
 #else // ONE-THREAD
-		: mSystems( )
+		: mEnabled( false ),
 #endif // MULTI-THREADING
+		mTypeID( pTypeID )
 	{
 	}
 
@@ -86,131 +82,24 @@ namespace mecs
 	// ===========================================================
 
 	/**
-	 * SystemsManager destructor.
+	 * System destructor.
 	 *
 	 * @throws - no exceptions.
 	**/
-	SystemsManager::~SystemsManager( ) noexcept = default;
+	System::~System( ) noexcept = default;
 
 	// ===========================================================
 	// GETTERS & SETTERS
 	// ===========================================================
 
 	/**
-	 * Search a System with the Type-ID.
+	 * Returns 'true' if this System is Enabled.
 	 *
-	 * @thread_safety - thread-lock used.
-	 * @param pTypeID - System Type-ID.
-	 * @return - System, or null.
+	 * @thread_safety - atomic-flag used.
 	 * @throws - no exceptions.
 	**/
-	SystemsManager::system_ptr_t SystemsManager::getSystem( const TypeID & pTypeID ) noexcept
-	{
-
-#ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
-		// Lock
-		mecs_ulock lock_( mInstance->mMutex );
-#endif // MULTI-THREADING
-
-		// Search System
-		auto systemPos_ = mInstance->mSystems.find( pTypeID );
-
-		// Cancel
-		if ( systemPos_ == mInstance->mSystems.cend( ) )
-			return( system_ptr_t( nullptr ) );
-
-		// Return System
-		return( systemPos_->second ); // Copy-construct
-
-	}
-
-	// ===========================================================
-	// METHODS
-	// ===========================================================
-
-	/**
-	 * Initialize SystemsManager.
-	 *
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/
-	void SystemsManager::Initialize( ) noexcept
-	{
-
-		// Cancel
-		if ( mInstance != nullptr )
-			return;
-
-		// Create SystemsManager instance.
-		mInstance = new SystemsManager( );
-
-	}
-
-	/**
-	 * Terminate SystemsManager.
-	 *
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/
-	void SystemsManager::Terminate( ) noexcept
-	{
-
-		// Cancel
-		if ( mInstance == nullptr )
-			return;
-
-		// Delete SystemsManager instance.
-		delete mInstance;
-		mInstance = nullptr;
-
-	}
-
-	/**
-	 * Add System to cache.
-	 *
-	 * @thread_safety - thread-lock used.
-	 * @param pSystem - System.
-	 * @throws - no exceptions.
-	**/
-	void SystemsManager::addSystem( system_ptr_t & pSystem ) noexcept
-	{
-
-#ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
-		// Lock
-		mecs_ulock lock_( mInstance->mMutex );
-#endif // MULTI-THREADING
-
-		// Add System
-		mInstance->mSystems.insert( std::pair<const TypeID, system_ptr_t>( pSystem->mTypeID, pSystem ) );
-
-	}
-
-	/**
-	 * Remove System from cache.
-	 *
-	 * @thread_safety - thread-lock used.
-	 * @param pTypeID - System Type-ID.
-	 * @throws - no exceptions.
-	**/
-	void SystemsManager::removeSystem( const TypeID & pTypeID ) noexcept
-	{
-
-#ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
-		// Lock
-		mecs_ulock lock_( mInstance->mMutex );
-#endif // MULTI-THREADING
-
-		// Search System
-		auto systemPos_ = mInstance->mSystems.find( pTypeID );
-
-		// Cancel
-		if ( systemPos_ == mInstance->mSystems.cend( ) )
-			return;
-
-		// Remove System
-		mInstance->mSystems.erase( systemPos_ );
-
-	}
+	bool System::isEnabled( ) const noexcept
+	{ return( mEnabled ? true : false ); }
 
 	// -----------------------------------------------------------
 

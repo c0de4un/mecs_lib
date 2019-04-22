@@ -1,5 +1,5 @@
 /**
-* Copyright Â© 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
+* Copyright © 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
 * Authors: Denis Zyamaev (code4un@yandex.ru)
 * All rights reserved.
 * Language: C++
@@ -38,91 +38,64 @@
 // ===========================================================
 
 // HEADER
-#ifndef MECS_ECS_HPP
-#include "ecs.hpp"
-#endif // !MECS_ECS_HPP
-
-// Include mecs::ComponentsManager
-#ifndef MECS_COMPONENTS_MANAGER_HPP
-#include "components/ComponentsManager.hpp"
-#endif // !MECS_COMPONENTS_MANAGER_HPP
-
-// Include mecs::EntitiesManager
-#ifndef MECS_ENTITiES_MANAGER_HPP
-#include "entities/EntitiesManager.hpp"
-#endif // !MECS_ENTITiES_MANAGER_HPP
-
-// Include mecs::SystemsManager
-#ifndef MECS_SYSTEMS_MANAGER_HPP
-#include "systems/SystemsManager.hpp"
-#endif // !MECS_SYSTEMS_MANAGER_HPP
-
-// Include mecs::EventsManager
-#ifndef MECS_EVENTS_MANAGER_HPP
-#include "events/EventsManager.hpp"
-#endif // !MECS_EVENTS_MANAGER_HPP
+#ifndef MECS_EVENT_HPP
+#include "Event.hpp"
+#endif // !MECS_EVENT_HPP
 
 // ===========================================================
-// IMPLEMENTATION
+// mecs::Event
 // ===========================================================
 
 namespace mecs
 {
-	
+
 	// -----------------------------------------------------------
-	
+
 	// ===========================================================
-	// METHODS
+	// FIELDS
 	// ===========================================================
-	
+
+	/** Events IDs. **/
+	IDMap<const TypeID, ObjectID> Event::mEventsIDs;
+
+	// ===========================================================
+	// CONSTRUCTOR
+	// ===========================================================
+
 	/**
-	 * Initialize.
-	 * 
-	 * @thread_safety - not thread-safe.
+	 * Event constructor.
+	 *
+	 * @param pTypeID - Event Type-ID.
+	 * @param pRepeat - 'true' to keep sending Event until received (handled).
 	 * @throws - no exceptions.
-	**/ 
-	void ECSEngine::Initialize( ) noexcept
+	**/
+	Event::Event( const TypeID & pTypeID, const bool pRepeat ) noexcept
+		: mTypeID( pTypeID ),
+		mID( mEventsIDs.generateID( pTypeID ) ),
+		mHandled( false ),
+		mRepeat( pRepeat )
 	{
-		
-		// Initialize ComponentsManager
-		ComponentsManager::Initialize( );
-		
-		// Initialize EntitiesManager
-		EntitiesManager::Initialize( );
+	}
 
-		// Initialize SystemsManager
-		SystemsManager::Initialize( );
+	// ===========================================================
+	// DESTRUCTOR
+	// ===========================================================
 
-		// Initialize EventsManager
-		EventsManager::Initialize( );
+	/**
+	 * Event destructor.
+	 *
+	 * @throws - no exceptions.
+	**/
+	Event::~Event( ) noexcept
+	{
+
+		// Return ID
+		mEventsIDs.returnID( mTypeID, mID );
 
 	}
-	
-	/**
-	 * Terminate.
-	 * 
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/ 
-	void ECSEngine::Terminate( ) noexcept
-	{
-		
-		// Terminate ComponentsManager
-		ComponentsManager::Terminate( );
-		
-		// Terminate EntitiesManager
-		EntitiesManager::Terminate( );
 
-		// Terminate SystemsManager
-		SystemsManager::Terminate( );
-
-		// Terminate EventsManager
-		EventsManager::Terminate( );
-
-	}
-	
 	// -----------------------------------------------------------
-	
+
 } // mecs
 
 // -----------------------------------------------------------

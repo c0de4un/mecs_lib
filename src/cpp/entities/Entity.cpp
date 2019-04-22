@@ -1,5 +1,5 @@
 /**
-* Copyright © 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
+* Copyright Â© 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
 * Authors: Denis Zyamaev (code4un@yandex.ru)
 * All rights reserved.
 * Language: C++
@@ -38,182 +38,143 @@
 // ===========================================================
 
 // HEADER
-#ifndef MECS_SYSTEMS_MANAGER_HPP
-#include "SystemsManager.hpp"
-#endif // !MECS_SYSTEMS_MANAGER_HPP
-
-// Include mecs::System
-#ifndef MECS_SYSTEM_HPP
-#include "System.hpp"
-#endif // !MECS_SYSTEM_HPP
+#ifndef MECS_ENTITY_HPP
+#include "Entity.hpp"
+#endif // !MECS_ENTITY_HPP
 
 // ===========================================================
-// mecs::SystemsManager
+// mecs::Entity
 // ===========================================================
 
 namespace mecs
 {
-
+	
 	// -----------------------------------------------------------
-
+	
 	// ===========================================================
 	// FIELDS
 	// ===========================================================
-
-	/** SystemsManager instance. **/
-	SystemsManager * SystemsManager::mInstance( nullptr );
-
+	
+	/** Entities IDs Storage. **/
+	IDMap<const TypeID, ObjectID> Entity::mIDStorage;
+	
 	// ===========================================================
 	// CONSTRUCTOR
 	// ===========================================================
-
+	
 	/**
-	 * SystemsManager constructor.
-	 *
+	 * Entity constructor.
+	 * 
+	 * @param pType - Entity Type-ID.
 	 * @throws - no exceptions.
 	**/
-	SystemsManager::SystemsManager( ) noexcept
+	Entity::Entity( const TypeID & pType ) noexcept
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
-		: mMutex( ), mSystems( )
-#else // ONE-THREAD
-		: mSystems( )
+		: mMutex( ), mComponents( ),
+#else // !MULTI-THREADING
+		: mComponents( ),
 #endif // MULTI-THREADING
+		mTypeID( pType ),
+	 	mID( mIDStorage.generateID( pType ) )
 	{
 	}
-
+	
 	// ===========================================================
 	// DESTRUCTOR
 	// ===========================================================
-
+	
 	/**
-	 * SystemsManager destructor.
-	 *
+	 * Entity destructor.
+	 * 
 	 * @throws - no exceptions.
 	**/
-	SystemsManager::~SystemsManager( ) noexcept = default;
-
+	Entity::~Entity( ) noexcept
+	{
+	
+		// Return ID
+		mIDStorage.returnID( mTypeID, mID );
+	
+	}
+	
 	// ===========================================================
 	// GETTERS & SETTERS
 	// ===========================================================
-
+	
 	/**
-	 * Search a System with the Type-ID.
-	 *
+	 * Search a Component with specific Type-ID.
+	 * 
 	 * @thread_safety - thread-lock used.
-	 * @param pTypeID - System Type-ID.
-	 * @return - System, or null.
+	 * @param pTypeID - Component Type-ID.
+	 * @return - Component, or null.
 	 * @throws - no exceptions.
 	**/
-	SystemsManager::system_ptr_t SystemsManager::getSystem( const TypeID & pTypeID ) noexcept
+	Entity::component_ptr Entity::getComponent( const TypeID & pTypeID ) noexcept
 	{
-
+	
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
 		// Lock
-		mecs_ulock lock_( mInstance->mMutex );
+		mecs_ulock lock_l( mMutex );
 #endif // MULTI-THREADING
-
-		// Search System
-		auto systemPos_ = mInstance->mSystems.find( pTypeID );
-
+	
+		// Search
+		auto componentPosition_lr = mComponents.find( pTypeID );
+	
 		// Cancel
-		if ( systemPos_ == mInstance->mSystems.cend( ) )
-			return( system_ptr_t( nullptr ) );
-
-		// Return System
-		return( systemPos_->second ); // Copy-construct
-
+		if ( componentPosition_lr == mComponents.cend( ) )
+			return( component_ptr( nullptr ) );
+	
+		// Return Component
+		return( componentPosition_lr->second ); // Copy-construct.
+	
 	}
-
+	
 	// ===========================================================
 	// METHODS
 	// ===========================================================
-
+	
 	/**
-	 * Initialize SystemsManager.
-	 *
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/
-	void SystemsManager::Initialize( ) noexcept
-	{
-
-		// Cancel
-		if ( mInstance != nullptr )
-			return;
-
-		// Create SystemsManager instance.
-		mInstance = new SystemsManager( );
-
-	}
-
-	/**
-	 * Terminate SystemsManager.
-	 *
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/
-	void SystemsManager::Terminate( ) noexcept
-	{
-
-		// Cancel
-		if ( mInstance == nullptr )
-			return;
-
-		// Delete SystemsManager instance.
-		delete mInstance;
-		mInstance = nullptr;
-
-	}
-
-	/**
-	 * Add System to cache.
-	 *
+	 * Attach Component.
+	 * 
 	 * @thread_safety - thread-lock used.
-	 * @param pSystem - System.
+	 * @param pTypeID - Component Type-ID.
+	 * @param pComponent - Component to attach.
 	 * @throws - no exceptions.
 	**/
-	void SystemsManager::addSystem( system_ptr_t & pSystem ) noexcept
+	void Entity::attachComponent( const TypeID & pTypeID, Entity::component_ptr & pComponent ) noexcept
 	{
-
+	
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
 		// Lock
-		mecs_ulock lock_( mInstance->mMutex );
+		mecs_ulock lock_l( mMutex );
 #endif // MULTI-THREADING
-
-		// Add System
-		mInstance->mSystems.insert( std::pair<const TypeID, system_ptr_t>( pSystem->mTypeID, pSystem ) );
-
+	
+		// Add Component
+		mComponents[pTypeID] = pComponent;
+	
 	}
-
+	
 	/**
-	 * Remove System from cache.
-	 *
+	 * Detach Component.
+	 * 
 	 * @thread_safety - thread-lock used.
-	 * @param pTypeID - System Type-ID.
+	 * @param pTypeID - Component Type-ID.
 	 * @throws - no exceptions.
 	**/
-	void SystemsManager::removeSystem( const TypeID & pTypeID ) noexcept
+	void Entity::detachComponent( const TypeID & pTypeID ) noexcept
 	{
-
+	
 #ifdef MECS_LIB_MT_ENABLED // MULTI-THREADING
 		// Lock
-		mecs_ulock lock_( mInstance->mMutex );
+		mecs_ulock lock_l( mMutex );
 #endif // MULTI-THREADING
-
-		// Search System
-		auto systemPos_ = mInstance->mSystems.find( pTypeID );
-
-		// Cancel
-		if ( systemPos_ == mInstance->mSystems.cend( ) )
-			return;
-
-		// Remove System
-		mInstance->mSystems.erase( systemPos_ );
-
+	
+		// Remove Component
+		mComponents.erase( pTypeID );
+	
 	}
-
+	
 	// -----------------------------------------------------------
-
+	
 } // mecs
 
 // -----------------------------------------------------------

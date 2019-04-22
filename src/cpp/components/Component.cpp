@@ -1,5 +1,5 @@
 /**
-* Copyright Â© 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
+* Copyright © 2019 Denis Zyamaev (code4un@yandex.ru) All rights reserved.
 * Authors: Denis Zyamaev (code4un@yandex.ru)
 * All rights reserved.
 * Language: C++
@@ -38,91 +38,62 @@
 // ===========================================================
 
 // HEADER
-#ifndef MECS_ECS_HPP
-#include "ecs.hpp"
-#endif // !MECS_ECS_HPP
-
-// Include mecs::ComponentsManager
-#ifndef MECS_COMPONENTS_MANAGER_HPP
-#include "components/ComponentsManager.hpp"
-#endif // !MECS_COMPONENTS_MANAGER_HPP
-
-// Include mecs::EntitiesManager
-#ifndef MECS_ENTITiES_MANAGER_HPP
-#include "entities/EntitiesManager.hpp"
-#endif // !MECS_ENTITiES_MANAGER_HPP
-
-// Include mecs::SystemsManager
-#ifndef MECS_SYSTEMS_MANAGER_HPP
-#include "systems/SystemsManager.hpp"
-#endif // !MECS_SYSTEMS_MANAGER_HPP
-
-// Include mecs::EventsManager
-#ifndef MECS_EVENTS_MANAGER_HPP
-#include "events/EventsManager.hpp"
-#endif // !MECS_EVENTS_MANAGER_HPP
+#ifndef MECS_COMPONENT_HPP
+#include "Component.hpp"
+#endif // !MECS_COMPONENT_HPP
 
 // ===========================================================
-// IMPLEMENTATION
+// mecs::Component
 // ===========================================================
 
 namespace mecs
 {
-	
+
 	// -----------------------------------------------------------
+
+	// ===========================================================
+	// FIELDS
+	// ===========================================================
+
+	/** Components IDs Cache. **/
+	IDMap<const TypeID, ObjectID> Component::mComponentsIDs;
 	
 	// ===========================================================
-	// METHODS
+	// CONSTRUCTOR
 	// ===========================================================
-	
+
 	/**
-	 * Initialize.
-	 * 
-	 * @thread_safety - not thread-safe.
+	 * Component constructor.
+	 *
+	 * @param pType - Component Type-ID.
 	 * @throws - no exceptions.
-	**/ 
-	void ECSEngine::Initialize( ) noexcept
+	**/
+	Component::Component( const TypeID & pType ) noexcept
+		: mTypeID( pType ),
+		mID( mComponentsIDs.generateID( pType ) ),
+		mRemove( false )
 	{
-		
-		// Initialize ComponentsManager
-		ComponentsManager::Initialize( );
-		
-		// Initialize EntitiesManager
-		EntitiesManager::Initialize( );
+	}
 
-		// Initialize SystemsManager
-		SystemsManager::Initialize( );
+	// ===========================================================
+	// DESTRUCTOR
+	// ===========================================================
 
-		// Initialize EventsManager
-		EventsManager::Initialize( );
+	/**
+	 * Component destructor.
+	 *
+	 * @throws - no exceptions.
+	**/
+	Component::~Component( ) noexcept
+	{
+
+		// Return ID
+		mComponentsIDs.returnID( mTypeID, mID );
 
 	}
-	
-	/**
-	 * Terminate.
-	 * 
-	 * @thread_safety - not thread-safe.
-	 * @throws - no exceptions.
-	**/ 
-	void ECSEngine::Terminate( ) noexcept
-	{
-		
-		// Terminate ComponentsManager
-		ComponentsManager::Terminate( );
-		
-		// Terminate EntitiesManager
-		EntitiesManager::Terminate( );
 
-		// Terminate SystemsManager
-		SystemsManager::Terminate( );
-
-		// Terminate EventsManager
-		EventsManager::Terminate( );
-
-	}
-	
 	// -----------------------------------------------------------
-	
+
 } // mecs
 
 // -----------------------------------------------------------

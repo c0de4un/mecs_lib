@@ -36,3 +36,6 @@
 
 // Include STL std::fstream
 #include <fstream> // ifstream
+
+// Include ecs.hpp
+#include "../ecs.hpp"
